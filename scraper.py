@@ -46,7 +46,7 @@ for url in week_urls:
     end = temp_parts[1]
     end = end.strip()
     week = temp_parts[2]
-
+    
     # scraping the tables
     for table in tables:
         # getting the table "title"
@@ -65,10 +65,22 @@ for url in week_urls:
                     # writing to file
                     try:
                         f.write(f'\n{line}')
-                        print(f'{crayons.green("[ADDED]")} {line}')
+                        # print(f'{crayons.green("[cumulativeNumberOfPositiveInfluenza.csv]")} {line}')
                     except:
                         print(f'{crayons.red("[WRITE FAILED]")} {line}')
-                    time.sleep(0.01)
+                    time.sleep(0.02)
+    
+    
+    # table =  soup.find(id='ft3')
+    # rows = table.find_all('tr')
+    # provinces_file = open('data/regionalData.csv', 'a+')
+    # for i in range(2, len(rows)-1):
+    #     cells = rows[i].find_all(['td', 'th'])
+    #     line = ''
+    #     for cell in cells:
+    #         print(cell.text, end=' ')
+    #     print('')
+    # provinces_file.close()
 f.close()
 
                     
