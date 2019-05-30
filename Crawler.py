@@ -27,12 +27,22 @@ SGC = {
 def parse_week(text):
     to_parse = text.strip()
     temp_parts = re.split(r"\(|\)| to | – ", to_parse)
-    start = temp_parts[0].strip()
-    end = temp_parts[1].strip()
-    week = temp_parts[2].lower().replace('weeks', '').strip()
-    week = week.replace('week', '').strip()
 
-    return start, end, week
+    try:
+        start = datetime.strptime(temp_parts[1].strip(), "%B %d, %Y").strftime('%B, %d')
+    except ValueError:
+        start = datetime.strptime(temp_parts[1].strip(), "%B %d").strftime('%B, %d')
+    
+    try:
+        end = datetime.strptime(temp_parts[2].strip(), "%B %d, %Y").strftime('%B, %d')
+    except ValueError:
+        end = datetime.strptime(temp_parts[2].strip(), "%B %d").strftime('%B, %d')
+    try:
+        year = datetime.strptime(temp_parts[2].strip(), "%B %d, %Y").strftime('%Y')
+    except ValueError:
+        year = datetime.strptime(temp_parts[1].strip(), "%B %d, %Y").strftime('%Y')
+
+    return start, end, year
 
 class Crawler(object):
     def scrape(self, target):
@@ -66,27 +76,6 @@ class Crawler(object):
                 'bTotal'
             ]
 
-        elif target == 'f8':
-            f = open('data/figure8.csv', 'a+')
-            f.truncate(0)
-            headers = [
-                'startDate',
-                'endDate',
-                'week',
-                'ageGroup',
-                'totalHospitalizations'
-            ]
-        elif target == 'f9':
-            f = open('data/figure9.csv', 'a+')
-            f.truncate(0)
-            headers = [
-                'startDate',
-                'endDate',
-                'week',
-                'ageGroup',
-                'totalHospitalizations'
-            ]
-        
         header = ','.join(headers)
         f.write(f'{header}\n')
 
@@ -103,14 +92,20 @@ class Crawler(object):
             elif target == 'f3': 
                 table = soup.find('figure', id='f3').find('table')
                 rows = table.find('tbody').find_all('tr')
-                start, end, weeks = parse_week(weeks_info[i])
+                
+                title = table.find('thead').find_all('tr')[0].find_all('th')[1].text
+
+                # start, end, weeks = parse_week(weeks_info[i])
+                start, end, year = parse_week(title)
+                
+                
 
                 week = ''
                 for i in range(len(rows)-1):
                     cells = rows[i].find_all(['th','td'])[0:6]
                     values = []
                     for cell in cells:
-                        value = cell.text.replace(',', '').strip()
+                        value = cell.text.replace(',', '').replace(' ', '').strip()
                         values.append(value)
                         try:
                             values.append(str(SGC[value.upper()]))
@@ -118,55 +113,14 @@ class Crawler(object):
                             pass
                     # values = [cell.contents[0].strip() if type(cell.contents[0]) == 'str' else cell.text.strip() for cell in cells if cell.contents[0]]
                     
-                    entry = f'"{start}","{end}",{weeks},{",".join(values)}'
+                    entry = f'"{start}","{end}",{year},{",".join(values)}'
                     week += f'{entry}\n'
                 
                 try:
                     f.write(week)
                 except Exception as e:
-                    print(f'[WEEK {weeks} WRITE FAILED] {e}')
-                    exit()
-
-            elif target == 'f8':
-                try:
-                    table = soup.find('figure', id='f8').find('table')
-                    rows = table.find('tbody').find_all('tr')
-                    start, end, weeks = parse_week(weeks_info[i])
-
-                    week = ''
-                    for i in range(len(rows)-1):
-                        cells = rows[i].find_all('td')
-                        values = [cell.text for cell in cells]
-                        entry = f'"{start}","{end}",{weeks},{",".join(values)}'
-                        week += f'{entry}\n'
-                    
-                    try:
-                        f.write(week)
-                    except Exception as e:
-                        print(f'[WEEK {weeks} WRITE FAILED] {e}')
-                        exit()
-                except AttributeError:
-                    pass
-            elif target == 'f9':
-                try:
-                    table = soup.find('figure', id='f9').find('table')
-                    rows = table.find('tbody').find_all('tr')
-                    start, end, weeks = parse_week(weeks_info[i])
-
-                    week = ''
-                    for i in range(len(rows)-1):
-                        cells = rows[i].find_all('td')
-                        values = [cell.text for cell in cells]
-                        entry = f'"{start}","{end}",{weeks},{",".join(values)}'
-                        week += f'{entry}\n'
-                    
-                    try:
-                        f.write(week)
-                    except Exception as e:
-                        print(f'[WEEK {weeks} WRITE FAILED] {e}')
-                        exit()
-                except AttributeError:
-                    pass
+                    print(f'[WEEK WRITE FAILED] {e}')
+                    exit()          
 
 if __name__ == '__main__':
     Fire(Crawler)
