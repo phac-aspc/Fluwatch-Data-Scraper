@@ -7,8 +7,6 @@ from datetime import datetime
 from fire import Fire
 from tqdm import tqdm
 
-
-
 SGC = {
     'NL': 10,
     'PE': 11,
@@ -23,7 +21,7 @@ SGC = {
     'BC': 59,
     'YT': 60,
     'NT': 61,
-    'NVT.': 61,
+    'NVT.': 62,
     'N.W.T': 61,
     'NU': 62,
     'CANADA': 1
@@ -31,6 +29,7 @@ SGC = {
 
 def parse_week(text):
     to_parse = text.strip().replace("Januray", "January").replace("Febuary", "February")
+    
     temp_parts = re.split(r"\(|\)| to | – ", to_parse)
 
     try:
@@ -54,6 +53,9 @@ def parse_week(text):
             year = datetime.strptime(temp_parts[1].strip(), "%B %d, %Y").strftime('%Y')
         except:
             year = temp_parts[2][-5:]
+
+    
+
     return start.replace(',', ''), end.replace(',', ''), year.strip()
 
 class Crawler(object):
@@ -65,6 +67,8 @@ class Crawler(object):
                     'startDate',
                     'endDate',
                     'year',
+                    'week',
+                    'season',
                     'province',
                     'pruid',
                     'aTotal',
@@ -83,7 +87,8 @@ class Crawler(object):
         for home_url in tqdm(links):
             # getting the first page
             # home_url = 'https://www.canada.ca/en/public-health/services/diseases/flu-influenza/influenza-surveillance/weekly-reports-2017-2018-season.html'
-            
+            season = home_url.text.split(' ')[2]
+
             req = requests.get('https://www.canada.ca' + home_url['href'])
             home_html = req.text
             soup = BeautifulSoup(home_html , features='html.parser')
@@ -121,7 +126,8 @@ class Crawler(object):
                         title = soup.find('table', id='t1').find('thead').find_all('tr')[0].find_all('th')[1].text
                 # start, end, weeks = parse_week(weeks_info[i])
                 start, end, year = parse_week(title)    
-
+                week_num = re.split(r"\(|\)", links[i].text)[1].replace('weeks', '').replace('Weeks', '').replace('week', '').replace('Week', '').strip()
+                week_num = week_num.replace('&', '-').strip()
                 week = ''
                 for i in range(len(rows)-1):
                     cells = rows[i].find_all(['th','td'])[0:6]
@@ -137,7 +143,7 @@ class Crawler(object):
                             except KeyError:
                                 pass
                             
-                        entry = f'"{start}","{end}",{year},{",".join(values)}'
+                        entry = f'"{start}","{end}",{year},{week_num},{season},{",".join(values)}'
                         week += f'{entry}\n'
 
                 try:
